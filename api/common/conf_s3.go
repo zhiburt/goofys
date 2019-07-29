@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/kahing/goofys/internal/providers"
 )
 
 type S3Config struct {
@@ -118,6 +119,9 @@ func (c *S3Config) ToAwsConfig(flags *FlagStorage) (*aws.Config, error) {
 			}
 		}
 		c.Session = s3Session
+	}
+	if flags.UseVault {
+		c.Credentials = credentials.NewCredentials(providers.NewVaultConfigProvider(time.Second * 30))
 	}
 
 	if c.RoleArn != "" {
