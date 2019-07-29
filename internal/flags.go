@@ -261,6 +261,15 @@ func NewApp() (app *cli.App) {
 				Name:  "f",
 				Usage: "Run goofys in foreground.",
 			},
+
+			/////////////////////////
+			// Providers
+			/////////////////////////
+
+			cli.BoolFlag{
+				Name:  "vault",
+				Usage: "Enable vault integration.",
+			},
 		},
 	}
 
@@ -279,7 +288,7 @@ func NewApp() (app *cli.App) {
 		flagCategories[f] = "tuning"
 	}
 
-	for _, f := range []string{"help, h", "debug_fuse", "debug_s3", "version, v", "f"} {
+	for _, f := range []string{"help, h", "debug_fuse", "debug_s3", "version, v", "f", "vault"} {
 		flagCategories[f] = "misc"
 	}
 
@@ -341,6 +350,9 @@ func PopulateFlags(c *cli.Context) (ret *FlagStorage) {
 		DebugFuse:  c.Bool("debug_fuse"),
 		DebugS3:    c.Bool("debug_s3"),
 		Foreground: c.Bool("f"),
+
+		// Providers
+		UseVault: c.Bool("vault"),
 	}
 
 	// S3
