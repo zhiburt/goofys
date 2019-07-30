@@ -121,7 +121,11 @@ func (c *S3Config) ToAwsConfig(flags *FlagStorage) (*aws.Config, error) {
 		c.Session = s3Session
 	}
 	if flags.UseVault {
-		c.Credentials = credentials.NewCredentials(providers.NewVaultConfigProvider(time.Second * 30))
+		if flags.TimeForCheck < time.Second*5 {
+			flags.TimeForCheck = time.Second * 30
+		}
+
+		c.Credentials = credentials.NewCredentials(providers.NewVaultConfigProvider(flags.TimeForCheck))
 	}
 
 	if c.RoleArn != "" {

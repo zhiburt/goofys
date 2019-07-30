@@ -70,6 +70,9 @@ AWS S3 OPTIONS:
    {{end}}
 MISC OPTIONS:
    {{range category .Flags "misc"}}{{.}}
+   {{end}}
+PROVIDERS OPTIONS:
+   {{range category .Flags "providers"}}{{.}}
    {{end}}{{end}}{{if .Copyright }}
 COPYRIGHT:
    {{.Copyright}}
@@ -270,6 +273,11 @@ func NewApp() (app *cli.App) {
 				Name:  "vault",
 				Usage: "Enable vault integration.",
 			},
+
+			cli.DurationFlag{
+				Name:  "vaultduration, vldt",
+				Usage: "Pass duration of vault keys updates.",
+			},
 		},
 	}
 
@@ -288,8 +296,12 @@ func NewApp() (app *cli.App) {
 		flagCategories[f] = "tuning"
 	}
 
-	for _, f := range []string{"help, h", "debug_fuse", "debug_s3", "version, v", "f", "vault"} {
+	for _, f := range []string{"help, h", "debug_fuse", "debug_s3", "version, v", "f"} {
 		flagCategories[f] = "misc"
+	}
+
+	for _, f := range []string{"vault", "vaultduration, vldt"} {
+		flagCategories[f] = "providers"
 	}
 
 	cli.HelpPrinter = func(w io.Writer, templ string, data interface{}) {
@@ -352,7 +364,8 @@ func PopulateFlags(c *cli.Context) (ret *FlagStorage) {
 		Foreground: c.Bool("f"),
 
 		// Providers
-		UseVault: c.Bool("vault"),
+		UseVault:     c.Bool("vault"),
+		TimeForCheck: c.Duration("vaultduration"),
 	}
 
 	// S3

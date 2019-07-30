@@ -55,7 +55,8 @@ type FlagStorage struct {
 	Foreground bool
 
 	// Providers
-	UseVault bool
+	UseVault     bool
+	TimeForCheck time.Duration
 }
 
 func (flags *FlagStorage) GetMimeType(fileName string) (retMime *string) {
