@@ -2,6 +2,7 @@ package providers
 
 import (
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -18,20 +19,25 @@ func NewVaultConfigProvider(t time.Duration) credentials.Provider {
 type vaultConfigProvider struct {
 	expairedFiredIn time.Time
 	expairedTime    time.Duration
+	sync.RWMutex
 }
 
-// TODO: thinking about multitrading behavior
+// TODO: It would be better if we use chanles here instead of mutex or with it?
 func (c *vaultConfigProvider) Retrieve() (credentials.Value, error) {
+	c.Lock()
 	creds := (*vaultConfigProvider).provider(c)
 	c.expairedFiredIn = time.Now().Add(c.expairedTime)
+	c.Unlock()
 
 	return creds, nil
 }
 
 func (c *vaultConfigProvider) IsExpired() bool {
+	c.RLock()
 	if time.Now().After(c.expairedFiredIn) {
 		return true
 	}
+	c.RUnlock()
 
 	return false
 }
