@@ -125,7 +125,15 @@ func (c *S3Config) ToAwsConfig(flags *FlagStorage) (*aws.Config, error) {
 			flags.TimeForCheck = time.Second * 30
 		}
 
-		c.Credentials = credentials.NewCredentials(providers.NewVaultConfigProvider(flags.TimeForCheck))
+		// TODO: something needs being done to get parameters here
+		vaultCfg := providers.DefaultVaultConfig("", "", "", "", "")
+
+		provider, err := providers.NewVaultConfigProvider(&vaultCfg)
+		if err != nil {
+			return nil, err
+		}
+
+		c.Credentials = credentials.NewCredentials(provider)
 	}
 
 	if c.RoleArn != "" {
