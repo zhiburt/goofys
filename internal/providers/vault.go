@@ -21,6 +21,8 @@ var (
 	ErrInitVault = errors.New("Cannot construct vault")
 	// ErrConnectionToVault is the error code for errors with vault connection
 	ErrConnectionToVault = errors.New("Cannot get into vault")
+	// ErrInformationFromVault is the error code for errors when vault not give any information
+	ErrInformationFromVault = errors.New("Information from vault is nil")
 )
 
 // A vaultConfigProvider ensure a pile of values for vault
@@ -42,6 +44,8 @@ type vaultConfigProvider struct {
 	api             *api.Client
 	cfg             *VaultConfig
 	secrets         map[string]string
+	communicator    chan error
+	needNotify      int32
 	sync.RWMutex
 }
 
@@ -62,6 +66,7 @@ func NewVaultConfigProvider(cfg *VaultConfig) (credentials.Provider, error) {
 		api:             client,
 		cfg:             cfg,
 		secrets:         make(map[string]string),
+		communicator:    make(chan error),
 	}
 
 	provider.initSecrets()
@@ -72,24 +77,63 @@ func NewVaultConfigProvider(cfg *VaultConfig) (credentials.Provider, error) {
 // Retrieve goes to vault for new secrets
 // if something wrong happend it guarantees provider has the same state as before
 //
-// TODO: It would be better if we use chanles here instead of mutex?
-// Although we lock all goorutines and one of them goes to vault,
-// each of them also requests new information from vault
-func (c *vaultConfigProvider) Retrieve() (credentials.Value, error) {
+// TODO: make up the working way of this function
+func (c *vaultConfigProvider) Retrieve() (creds credentials.Value, err error) {
+	// This lock must to be here, since
+	// some of goorutines can fall into first branch and that can couse undefiend behaiviour
+	// we must ensure that if statement is threadesafe.
+	//
+	// We could use atomic here
+	// but initial mutex should be also remaine
+	// because we need guaranteing that when first goorutine in defer from second branch
+	// no any others will trying to increment needNotify.
+	//
+	// More information:
+	// One situation when can intiate data race when we do atomic.StoreInt32(&c.needNotify, 0)
+	// it's gonna be problem if someone update c.needNotify even it would be atomic operation
+	// this goorution can dangle for endless time
+	//
+	// it's becouse we refuse atomic this code approach
 	c.Lock()
-	defer c.Unlock()
+	c.needNotify++
 
-	secretes, err := c.provide()
-	if err != nil {
-		return credentials.Value{}, ErrConnectionToVault
+	if c.needNotify != 1 {
+		c.Unlock() // Unclock first lock
+
+		err = <-c.communicator
+		if err != nil {
+			return creds, err
+		}
+	} else {
+		defer func() {
+			c.Lock()
+			c.expairedFiredIn = time.Now().Add(c.cfg.expiredTime)
+
+			for i := int32(0); i < c.needNotify-1; i++ {
+				c.communicator <- err
+			}
+
+			c.needNotify = 0
+			c.Unlock()
+		}()
+
+		c.Unlock() // Unclock first lock
+
+		var secretes map[string]interface{}
+		secretes, err = c.provide()
+		if err != nil {
+			return creds, ErrConnectionToVault
+		}
+
+		err = c.fillUpSecrets(secretes)
+		if err != nil {
+
+			return creds, ErrConnectionToVault
+		}
 	}
 
-	err = c.fillUpSecrets(secretes)
-	if err != nil {
-		return credentials.Value{}, ErrSecrets
-	}
-
-	c.expairedFiredIn = time.Now().Add(c.cfg.expiredTime)
+	c.RLock()
+	c.RUnlock()
 
 	return credentials.Value{
 		AccessKeyID:     c.secrets[c.cfg.accessVaultKey],
@@ -118,6 +162,10 @@ func (c *vaultConfigProvider) provide() (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	if data == nil {
+		return nil, ErrInformationFromVault
+	}
+
 	return data.Data, nil
 }
 
@@ -130,6 +178,7 @@ func (c *vaultConfigProvider) provide() (map[string]interface{}, error) {
 // using 2 cycles to have less memory allocation
 // there's a hypothesis that the secretes it is conserned with quit small map.
 func (c *vaultConfigProvider) fillUpSecrets(data map[string]interface{}) error {
+	c.RLock()
 	for key := range c.secrets {
 		if secret, ok := data[key]; !ok {
 			return fmt.Errorf("There is no secret with key: %v", key)
@@ -139,10 +188,13 @@ func (c *vaultConfigProvider) fillUpSecrets(data map[string]interface{}) error {
 			}
 		}
 	}
+	c.RUnlock()
 
+	c.Lock()
 	for key := range c.secrets {
 		c.secrets[key] = data[key].(string)
 	}
+	c.Unlock()
 
 	return nil
 }
