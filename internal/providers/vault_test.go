@@ -13,6 +13,36 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
+func BenchmarkRetrive(b *testing.B) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(""))
+	}))
+	defer ts.Close()
+
+	provider, _ := configureVaultProvider(ts.URL)
+
+	for i := 0; i < b.N; i++ {
+		provider.Retrieve()
+	}
+}
+
+func BenchmarkRetrive_Parallel(b *testing.B) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(""))
+	}))
+	defer ts.Close()
+
+	provider, _ := configureVaultProvider(ts.URL)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			provider.Retrieve()
+		}
+	})
+}
+
 func TestRetriveInMultitradingEnv_Run_60Times(t *testing.T) {
 	t.Parallel()
 	for i := 1; i < 60; i++ {
