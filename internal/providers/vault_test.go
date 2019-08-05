@@ -45,9 +45,9 @@ func BenchmarkRetrive_Parallel(b *testing.B) {
 }
 
 func TestRetriveInMultitradingEnv_Run_60Times(t *testing.T) {
-	t.Parallel()
 	for i := 1; i < 60; i++ {
 		t.Run("", func(t *testing.T) {
+			t.Parallel()
 			testRetriveInMultitradingEnv(t, i, 50*time.Millisecond)
 		})
 	}
@@ -60,6 +60,7 @@ func TestRetriveInMultitradingEnv_Single(t *testing.T) {
 func TestRetriveInMultitradingEnv_RaceTest_Run_60Times(t *testing.T) {
 	for i := 1; i < 60; i++ {
 		t.Run("", func(t *testing.T) {
+			t.Parallel()
 			testRetriveInMultitradingEnv(t, i, 0)
 		})
 	}
