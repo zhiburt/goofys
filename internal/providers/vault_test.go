@@ -14,6 +14,8 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
+const itDoesnotMatter = -1
+
 func BenchmarkRetrive(b *testing.B) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -48,29 +50,29 @@ func TestRetriveInMultitradingEnv_Run_60Times(t *testing.T) {
 	for i := 1; i < 60; i++ {
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
-			testRetriveInMultitradingEnv(t, i, 50*time.Millisecond)
+			testRetriveInMultitradingEnv(t, i, 50*time.Millisecond, 1)
 		})
 	}
 }
 
 func TestRetriveInMultitradingEnv_Single(t *testing.T) {
-	testRetriveInMultitradingEnv(t, 7, 50*time.Millisecond)
+	testRetriveInMultitradingEnv(t, 7, 50*time.Millisecond, 1)
 }
 
 func TestRetriveInMultitradingEnv_RaceTest_Run_60Times(t *testing.T) {
 	for i := 1; i < 60; i++ {
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
-			testRetriveInMultitradingEnv(t, i, 0)
+			testRetriveInMultitradingEnv(t, i, 0, itDoesnotMatter)
 		})
 	}
 }
 
 func TestRetriveInMultitradingEnv_Single_RaceTest(t *testing.T) {
-	testRetriveInMultitradingEnv(t, 7, 0)
+	testRetriveInMultitradingEnv(t, 7, 0, itDoesnotMatter)
 }
 
-func testRetriveInMultitradingEnv(t *testing.T, quantityJobs int, serversSleepMs time.Duration) {
+func testRetriveInMultitradingEnv(t *testing.T, quantityJobs int, serversSleepMs time.Duration, expectedConnectionsToServer int32) {
 	var provider *vaultConfigProvider
 	var countCalls int32
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -103,8 +105,12 @@ func testRetriveInMultitradingEnv(t *testing.T, quantityJobs int, serversSleepMs
 
 	spawn(job, quantityJobs, quantityJobs)
 
-	if countCalls != 1 {
-		t.Fatalf("There is %d requests to server, was expected only 1", countCalls)
+	if expectedConnectionsToServer == itDoesnotMatter {
+		return
+	}
+
+	if countCalls != expectedConnectionsToServer {
+		t.Fatalf("There is %d requests to server, was expected only %v", countCalls, expectedConnectionsToServer)
 	}
 }
 
