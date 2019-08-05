@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -72,12 +73,17 @@ func testRetriveInMultitradingEnv(t *testing.T, quantityJobs int) {
 	var provider *vaultConfigProvider
 	var countCalls int32
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		time.Sleep(30 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 
 		atomic.AddInt32(&countCalls, 1)
+
+		body, _ := json.Marshal(struct {
+			k string
+			v string
+		}{"some_key", "some_value"})
+
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(""))
+		w.Write(body)
 	}))
 	defer ts.Close()
 
