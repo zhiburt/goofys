@@ -17,10 +17,7 @@ import (
 const itDoesnotMatter = -1
 
 func BenchmarkRetrive(b *testing.B) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(""))
-	}))
+	ts := configureDefaultHttpServer([]byte(""), http.StatusOK, 0, nil)
 	defer ts.Close()
 
 	provider, _ := configureVaultProvider(ts.URL)
@@ -31,10 +28,7 @@ func BenchmarkRetrive(b *testing.B) {
 }
 
 func BenchmarkRetrive_Parallel(b *testing.B) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(""))
-	}))
+	ts := configureDefaultHttpServer([]byte(""), http.StatusOK, 0, nil)
 	defer ts.Close()
 
 	provider, _ := configureVaultProvider(ts.URL)
@@ -73,37 +67,27 @@ func TestRetriveInMultitradingEnv_Single_RaceTest(t *testing.T) {
 }
 
 func testRetriveInMultitradingEnv(t *testing.T, quantityJobs int, serversSleepMs time.Duration, expectedConnectionsToServer int32) {
-	var provider *vaultConfigProvider
 	var countCalls int32
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(serversSleepMs)
 
+	responce, _ := json.Marshal(struct {
+		k string
+		v string
+	}{"some_key", "some_value"})
+
+	ts := configureDefaultHttpServer(responce, http.StatusOK, serversSleepMs, func() {
 		atomic.AddInt32(&countCalls, 1)
-
-		body, _ := json.Marshal(struct {
-			k string
-			v string
-		}{"some_key", "some_value"})
-
-		w.WriteHeader(http.StatusOK)
-		w.Write(body)
-	}))
+	})
 	defer ts.Close()
 
-	var err error
-
-	provider, err = configureVaultProvider(ts.URL)
-
+	provider, err := configureVaultProvider(ts.URL)
 	if err != nil {
 		t.Fatalf("Erorr configuration %v", err)
 	}
 
-	job := func(i int) error {
+	spawn(quantityJobs, quantityJobs, func(i int) error {
 		provider.Retrieve()
 		return nil
-	}
-
-	spawn(job, quantityJobs, quantityJobs)
+	})
 
 	if expectedConnectionsToServer == itDoesnotMatter {
 		return
@@ -112,6 +96,21 @@ func testRetriveInMultitradingEnv(t *testing.T, quantityJobs int, serversSleepMs
 	if countCalls != expectedConnectionsToServer {
 		t.Fatalf("There is %d requests to server, was expected only %v", countCalls, expectedConnectionsToServer)
 	}
+}
+
+func configureDefaultHttpServer(body []byte, code int, emulation time.Duration, beforeSending func()) *httptest.Server {
+	if beforeSending == nil {
+		beforeSending = func() {}
+	}
+
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(emulation)
+
+		beforeSending()
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(""))
+	}))
 }
 
 func configureVaultProvider(url string) (*vaultConfigProvider, error) {
@@ -141,7 +140,7 @@ func configureVaultProvider(url string) (*vaultConfigProvider, error) {
 
 type job func(int) error
 
-func spawn(j job, quantityJobs, quantityGoorutines int) {
+func spawn(quantityJobs, quantityGoorutines int, j job) {
 	jobs := make([]job, quantityJobs)
 	for i := 0; i < quantityJobs; i++ {
 		jobs[i] = j
