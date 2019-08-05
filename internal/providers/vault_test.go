@@ -48,32 +48,32 @@ func TestRetriveInMultitradingEnv_Run_60Times(t *testing.T) {
 	t.Parallel()
 	for i := 1; i < 60; i++ {
 		t.Run("", func(t *testing.T) {
-			testRetriveInMultitradingEnv(t, i)
+			testRetriveInMultitradingEnv(t, i, 50*time.Millisecond)
 		})
 	}
 }
 
 func TestRetriveInMultitradingEnv_Single(t *testing.T) {
-	testRetriveInMultitradingEnv(t, 7)
+	testRetriveInMultitradingEnv(t, 7, 50*time.Millisecond)
 }
 
 func TestRetriveInMultitradingEnv_RaceTest_Run_60Times(t *testing.T) {
 	for i := 1; i < 60; i++ {
 		t.Run("", func(t *testing.T) {
-			testRetriveInMultitradingEnvWithoutSleep(t, i)
+			testRetriveInMultitradingEnv(t, i, 0)
 		})
 	}
 }
 
 func TestRetriveInMultitradingEnv_Single_RaceTest(t *testing.T) {
-	testRetriveInMultitradingEnvWithoutSleep(t, 7)
+	testRetriveInMultitradingEnv(t, 7, 0)
 }
 
-func testRetriveInMultitradingEnv(t *testing.T, quantityJobs int) {
+func testRetriveInMultitradingEnv(t *testing.T, quantityJobs int, serversSleepMs time.Duration) {
 	var provider *vaultConfigProvider
 	var countCalls int32
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(serversSleepMs)
 
 		atomic.AddInt32(&countCalls, 1)
 
@@ -105,30 +105,6 @@ func testRetriveInMultitradingEnv(t *testing.T, quantityJobs int) {
 	if countCalls != 1 {
 		t.Fatalf("There is %d requests to server, was expected only 1", countCalls)
 	}
-}
-
-func testRetriveInMultitradingEnvWithoutSleep(t *testing.T, quantityJobs int) {
-	var provider *vaultConfigProvider
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(""))
-	}))
-	defer ts.Close()
-
-	var err error
-
-	provider, err = configureVaultProvider(ts.URL)
-
-	if err != nil {
-		t.Fatalf("Erorr configuration %v", err)
-	}
-
-	job := func(i int) error {
-		provider.Retrieve()
-		return nil
-	}
-
-	spawn(job, quantityJobs, quantityJobs)
 }
 
 func configureVaultProvider(url string) (*vaultConfigProvider, error) {
