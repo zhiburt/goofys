@@ -98,7 +98,7 @@ func (c *vaultConfigProvider) Retrieve() (creds credentials.Value, err error) {
 	c.needNotify++
 
 	if c.needNotify != 1 {
-		c.Unlock() // Unclock first lock
+		c.Unlock() // Unlock first lock
 
 		err = <-c.communicator
 		if err != nil {
@@ -117,7 +117,7 @@ func (c *vaultConfigProvider) Retrieve() (creds credentials.Value, err error) {
 			c.Unlock()
 		}()
 
-		c.Unlock() // Unclock first lock
+		c.Unlock() // Unlock first lock
 
 		var secretes map[string]interface{}
 		secretes, err = c.provide()
