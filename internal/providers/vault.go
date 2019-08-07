@@ -132,14 +132,7 @@ func (c *vaultConfigProvider) Retrieve() (creds credentials.Value, err error) {
 		}
 	}
 
-	c.RLock()
-	c.RUnlock()
-
-	return credentials.Value{
-		AccessKeyID:     c.secrets[c.cfg.accessVaultKey],
-		SecretAccessKey: c.secrets[c.cfg.secretVaultKey],
-		ProviderName:    VaultProviderName,
-	}, nil
+	return c.getCreds(), nil
 }
 
 // IsExpired check the time has come or no
@@ -197,6 +190,18 @@ func (c *vaultConfigProvider) fillUpSecrets(data map[string]interface{}) error {
 	c.Unlock()
 
 	return nil
+}
+
+// getCreds gets credentials from locale map
+func (c *vaultConfigProvider) getCreds() credentials.Value {
+	c.RLock()
+	defer c.RUnlock()
+
+	return credentials.Value{
+		AccessKeyID:     c.secrets[c.cfg.accessVaultKey],
+		SecretAccessKey: c.secrets[c.cfg.secretVaultKey],
+		ProviderName:    VaultProviderName,
+	}
 }
 
 // initSecrets creates main secrets
