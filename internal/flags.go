@@ -274,9 +274,34 @@ func NewApp() (app *cli.App) {
 				Usage: "Enable vault integration.",
 			},
 
+			cli.StringFlag{
+				Name:  "p-url",
+				Usage: "Set url to secrets.",
+			},
+
+			cli.StringFlag{
+				Name:  "p-tok",
+				Usage: "Set token to provider.",
+			},
+
+			cli.StringFlag{
+				Name:  "p-path",
+				Usage: "Set path to secrets on provider.",
+			},
+
 			cli.DurationFlag{
-				Name:  "vaultduration, vldt",
-				Usage: "Pass duration of vault keys updates.",
+				Name:  "p-time",
+				Usage: "Set duration after which provider should try to update credentials.",
+			},
+
+			cli.StringFlag{
+				Name:  "p-skey",
+				Usage: "Set key beyond which we look the secret key.",
+			},
+
+			cli.StringFlag{
+				Name:  "p-akey",
+				Usage: "Set key beyond which we look the access key.",
 			},
 		},
 	}
@@ -300,7 +325,7 @@ func NewApp() (app *cli.App) {
 		flagCategories[f] = "misc"
 	}
 
-	for _, f := range []string{"vault", "vaultduration, vldt"} {
+	for _, f := range []string{"vault", "p-url", "p-tok", "p-path", "p-skey", "p-akey", "p-time"} {
 		flagCategories[f] = "providers"
 	}
 
@@ -364,8 +389,7 @@ func PopulateFlags(c *cli.Context) (ret *FlagStorage) {
 		Foreground: c.Bool("f"),
 
 		// Providers
-		UseVault:     c.Bool("vault"),
-		TimeForCheck: c.Duration("vaultduration"),
+		UseVault: c.Bool("vault"),
 	}
 
 	// S3
