@@ -16,7 +16,9 @@
 package internal
 
 import (
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	. "github.com/kahing/goofys/api/common"
+	"github.com/kahing/goofys/internal/providers"
 
 	"fmt"
 	"io"
@@ -418,6 +420,30 @@ func PopulateFlags(c *cli.Context) (ret *FlagStorage) {
 		if config.UseKMS {
 			config.UseSSE = true
 		}
+	}
+
+	// Providers
+	// TODO: create fabric method which would create providers
+	if flags.UseVault {
+		// TODO: rename DefaultVaultConfig to ProviderConfig
+		vaultCfg := providers.DefaultVaultConfig(
+			c.String("p-tok"),
+			c.String("p-path"),
+			c.String("p-skey"),
+			c.String("p-akey"),
+			c.String("p-url"))
+
+		provider, err := providers.NewVaultConfigProvider(&vaultCfg)
+		if err != nil {
+			io.WriteString(cli.ErrWriter,
+				fmt.Sprintf("Unable to get in touch with key provider: %v", err))
+			return nil
+		}
+
+		config, _ := flags.Backend.(*S3Config)
+		config.Credentials = credentials.NewCredentials(provider)
+		io.WriteString(cli.ErrWriter,
+			fmt.Sprintf("CREATE PROVIDER: %v", err))
 	}
 
 	// Handle the repeated "-o" flag.
