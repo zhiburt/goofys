@@ -17,7 +17,7 @@ import (
 const itDoesnotMatter = -1
 
 func BenchmarkRetrive(b *testing.B) {
-	ts := configureDefaultHttpServer([]byte(""), http.StatusOK, 0, nil)
+	ts := configureDefaultHTTPServer([]byte(""), http.StatusOK, 0, nil)
 	defer ts.Close()
 
 	provider, _ := configureVaultProvider(ts.URL)
@@ -28,7 +28,7 @@ func BenchmarkRetrive(b *testing.B) {
 }
 
 func BenchmarkRetrive_Parallel(b *testing.B) {
-	ts := configureDefaultHttpServer([]byte(""), http.StatusOK, 0, nil)
+	ts := configureDefaultHTTPServer([]byte(""), http.StatusOK, 0, nil)
 	defer ts.Close()
 
 	provider, _ := configureVaultProvider(ts.URL)
@@ -74,7 +74,7 @@ func testRetriveInMultitradingEnv(t *testing.T, quantityJobs int, serversSleepMs
 		v string
 	}{"some_key", "some_value"})
 
-	ts := configureDefaultHttpServer(responce, http.StatusOK, serversSleepMs, func() {
+	ts := configureDefaultHTTPServer(responce, http.StatusOK, serversSleepMs, func() {
 		atomic.AddInt32(&countCalls, 1)
 	})
 	defer ts.Close()
@@ -98,7 +98,7 @@ func testRetriveInMultitradingEnv(t *testing.T, quantityJobs int, serversSleepMs
 	}
 }
 
-func configureDefaultHttpServer(body []byte, code int, emulation time.Duration, beforeSending func()) *httptest.Server {
+func configureDefaultHTTPServer(body []byte, code int, emulation time.Duration, beforeSending func()) *httptest.Server {
 	if beforeSending == nil {
 		beforeSending = func() {}
 	}
