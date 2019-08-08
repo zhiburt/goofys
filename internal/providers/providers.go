@@ -25,3 +25,7 @@ func Use(name string) (Configurator, error) {
 
 	return nil, ErrCannotFindProvider
 }
+
+func NewCredentials(p credentials.Provider) *credentials.Credentials {
+	return credentials.NewCredentials(p)
+}
