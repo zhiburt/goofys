@@ -423,7 +423,6 @@ func PopulateFlags(c *cli.Context) (ret *FlagStorage) {
 	}
 
 	// Providers
-	// TODO: create fabric method which would create providers
 	if flags.UseVault {
 		vaultCfg := providers.NewProviderConfig(
 			c.String("p-tok"),
@@ -432,7 +431,15 @@ func PopulateFlags(c *cli.Context) (ret *FlagStorage) {
 			c.String("p-akey"),
 			c.String("p-url"))
 
-		provider, err := providers.NewVaultConfigProvider(&vaultCfg)
+		service := "vault"
+		creator, err := providers.Use(service)
+		if err != nil {
+			io.WriteString(cli.ErrWriter,
+				fmt.Sprintf("Cannot find provider with name=%s", err))
+			return nil
+		}
+
+		provider, err := creator(&vaultCfg)
 		if err != nil {
 			io.WriteString(cli.ErrWriter,
 				fmt.Sprintf("Unable to get in touch with key provider: %v", err))
