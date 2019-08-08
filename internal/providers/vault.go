@@ -42,7 +42,7 @@ var (
 type vaultConfigProvider struct {
 	expairedFiredIn time.Time
 	api             *api.Client
-	cfg             *VaultConfig
+	cfg             *ProviderConfig
 	secrets         map[string]string
 	communicator    chan error
 	needNotify      int32
@@ -53,7 +53,7 @@ type vaultConfigProvider struct {
 // where all necessary fields already put
 //
 // if a connection to vault isn't available it returns InitVaultErr
-func NewVaultConfigProvider(cfg *VaultConfig) (credentials.Provider, error) {
+func NewVaultConfigProvider(cfg *ProviderConfig) (credentials.Provider, error) {
 	client, err := api.NewClient(&api.Config{Address: cfg.url, HttpClient: cfg.client})
 	if err != nil {
 		return nil, ErrInitVault
@@ -206,6 +206,7 @@ func (c *vaultConfigProvider) getCreds() credentials.Value {
 
 // initSecrets creates main secrets
 // the have to be created in any way
+// TODO get parameters to set c.cfg.accsessVaultKey vault
 func (c *vaultConfigProvider) initSecrets() {
 	c.secrets[c.cfg.accessVaultKey] = ""
 	c.secrets[c.cfg.secretVaultKey] = ""

@@ -5,10 +5,10 @@ import (
 	"time"
 )
 
-// A VaultConfig stores values for vaultConfigProvider
+// A ProviderConfig stores values for vaultConfigProvider
 //
 // expiredTime is a duration after which time vaultConfigProvider updates secretes
-type VaultConfig struct {
+type ProviderConfig struct {
 	expiredTime    time.Duration
 	token          string
 	pathToSecrets  string
@@ -18,9 +18,9 @@ type VaultConfig struct {
 	client         *http.Client
 }
 
-// ProviderConfig returns config with some default fields
-func ProviderConfig(token, pathToSecrets, accessVaultKey, secretVaultKey, address string) VaultConfig {
-	cfg := VaultConfig{}.
+// NewProviderConfig returns config with some default fields
+func NewProviderConfig(token, pathToSecrets, accessVaultKey, secretVaultKey, address string) ProviderConfig {
+	cfg := ProviderConfig{}.
 		SetInformation(token, pathToSecrets, accessVaultKey, secretVaultKey).
 		SetEndpoint(address).
 		SetTimeExperation(6 * time.Second).
@@ -32,21 +32,21 @@ func ProviderConfig(token, pathToSecrets, accessVaultKey, secretVaultKey, addres
 }
 
 // SetClient renew new client to cfg
-func (cfg VaultConfig) SetClient(client *http.Client) VaultConfig {
+func (cfg ProviderConfig) SetClient(client *http.Client) ProviderConfig {
 	cfg.client = client
 
 	return cfg
 }
 
 // SetEndpoint renovate new endpoint to cfg
-func (cfg VaultConfig) SetEndpoint(addr string) VaultConfig {
+func (cfg ProviderConfig) SetEndpoint(addr string) ProviderConfig {
 	cfg.url = addr
 
 	return cfg
 }
 
 // SetInformation renovate information about vault
-func (cfg VaultConfig) SetInformation(token, pathToSecrets, accessVaultKey, secretVaultKey string) VaultConfig {
+func (cfg ProviderConfig) SetInformation(token, pathToSecrets, accessVaultKey, secretVaultKey string) ProviderConfig {
 	cfg.pathToSecrets = pathToSecrets
 	cfg.token = token
 
@@ -57,7 +57,7 @@ func (cfg VaultConfig) SetInformation(token, pathToSecrets, accessVaultKey, secr
 }
 
 // SetTimeExperation renovate expiredTime to cfg
-func (cfg VaultConfig) SetTimeExperation(expiredTime time.Duration) VaultConfig {
+func (cfg ProviderConfig) SetTimeExperation(expiredTime time.Duration) ProviderConfig {
 	cfg.expiredTime = expiredTime
 
 	return cfg

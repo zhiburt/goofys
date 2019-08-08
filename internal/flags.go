@@ -425,7 +425,7 @@ func PopulateFlags(c *cli.Context) (ret *FlagStorage) {
 	// Providers
 	// TODO: create fabric method which would create providers
 	if flags.UseVault {
-		vaultCfg := providers.ProviderConfig(
+		vaultCfg := providers.NewProviderConfig(
 			c.String("p-tok"),
 			c.String("p-path"),
 			c.String("p-skey"),
