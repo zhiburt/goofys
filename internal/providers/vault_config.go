@@ -18,8 +18,8 @@ type VaultConfig struct {
 	client         *http.Client
 }
 
-// DefaultVaultConfig returns config with some default fields
-func DefaultVaultConfig(token, pathToSecrets, accessVaultKey, secretVaultKey, address string) VaultConfig {
+// ProviderConfig returns config with some default fields
+func ProviderConfig(token, pathToSecrets, accessVaultKey, secretVaultKey, address string) VaultConfig {
 	cfg := VaultConfig{}.
 		SetInformation(token, pathToSecrets, accessVaultKey, secretVaultKey).
 		SetEndpoint(address).
