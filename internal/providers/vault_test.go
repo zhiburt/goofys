@@ -114,9 +114,8 @@ func configureDefaultHttpServer(body []byte, code int, emulation time.Duration, 
 }
 
 func configureVaultProvider(url string) (*vaultConfigProvider, error) {
-	cfg := DefaultVaultConfig("", "", "", "", url).SetClient(&http.Client{
+	cfg := NewProviderConfig("", "", "", "", url).SetClient(&http.Client{
 		Timeout: 20 * time.Second,
-
 		Transport: &http.Transport{
 
 			DialContext: (&net.Dialer{
