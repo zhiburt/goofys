@@ -16,7 +16,6 @@
 package internal
 
 import (
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	. "github.com/kahing/goofys/api/common"
 	"github.com/kahing/goofys/internal/providers"
 
@@ -73,8 +72,8 @@ AWS S3 OPTIONS:
 MISC OPTIONS:
    {{range category .Flags "misc"}}{{.}}
    {{end}}
-PROVIDERS OPTIONS:
-   {{range category .Flags "providers"}}{{.}}
+CREDENTIALS OPTIONS:
+   {{range category .Flags "creds"}}{{.}}
    {{end}}{{end}}{{if .Copyright }}
 COPYRIGHT:
    {{.Copyright}}
@@ -268,12 +267,12 @@ func NewApp() (app *cli.App) {
 			},
 
 			/////////////////////////
-			// Providers
+			// Credentials
 			/////////////////////////
 
-			cli.BoolFlag{
-				Name:  "vault",
-				Usage: "Enable vault integration.",
+			cli.StringFlag{
+				Name:  "provider, p",
+				Usage: "Set custom credentials provider service.",
 			},
 
 			cli.StringFlag{
@@ -327,8 +326,8 @@ func NewApp() (app *cli.App) {
 		flagCategories[f] = "misc"
 	}
 
-	for _, f := range []string{"vault", "p-url", "p-tok", "p-path", "p-skey", "p-akey", "p-time"} {
-		flagCategories[f] = "providers"
+	for _, f := range []string{"provider, p", "p-url", "p-tok", "p-path", "p-skey", "p-akey", "p-time"} {
+		flagCategories[f] = "creds"
 	}
 
 	cli.HelpPrinter = func(w io.Writer, templ string, data interface{}) {
@@ -391,7 +390,7 @@ func PopulateFlags(c *cli.Context) (ret *FlagStorage) {
 		Foreground: c.Bool("f"),
 
 		// Providers
-		UseVault: c.Bool("vault"),
+		ProviderServiceName: c.String("provider"),
 	}
 
 	// S3
@@ -423,23 +422,26 @@ func PopulateFlags(c *cli.Context) (ret *FlagStorage) {
 	}
 
 	// Providers
-	if flags.UseVault {
-		vaultCfg := providers.NewProviderConfig(
+	if flags.ProviderServiceName != "" {
+		cfg := providers.NewProviderConfig(
 			c.String("p-tok"),
 			c.String("p-path"),
 			c.String("p-skey"),
 			c.String("p-akey"),
 			c.String("p-url"))
 
-		service := "vault"
-		creator, err := providers.Use(service)
+		if d := c.Duration("p-time"); d != 0 {
+			cfg.SetTimeExperation(d)
+		}
+
+		creator, err := providers.Use(flags.ProviderServiceName)
 		if err != nil {
 			io.WriteString(cli.ErrWriter,
 				fmt.Sprintf("Cannot find provider with name=%s", err))
 			return nil
 		}
 
-		provider, err := creator(&vaultCfg)
+		provider, err := creator(&cfg)
 		if err != nil {
 			io.WriteString(cli.ErrWriter,
 				fmt.Sprintf("Unable to get in touch with key provider: %v", err))
@@ -447,9 +449,7 @@ func PopulateFlags(c *cli.Context) (ret *FlagStorage) {
 		}
 
 		config, _ := flags.Backend.(*S3Config)
-		config.Credentials = credentials.NewCredentials(provider)
-		io.WriteString(cli.ErrWriter,
-			fmt.Sprintf("CREATE PROVIDER: %v", err))
+		config.Credentials = providers.NewCredentials(provider)
 	}
 
 	// Handle the repeated "-o" flag.
